@@ -31,6 +31,123 @@ body {
   min-height: 100vh;
 }
 
+/* LOGIN OVERLAY */
+#login-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--navy);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+#login-overlay.hidden { display: none; }
+
+.login-box {
+  background: #fff;
+  border-radius: 18px;
+  padding: 44px 40px 36px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+  text-align: center;
+}
+.login-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  color: var(--navy);
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 32px;
+}
+.login-divider {
+  width: 40px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 0 auto 28px;
+}
+.login-field {
+  text-align: left;
+  margin-bottom: 16px;
+}
+.login-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.login-field input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #d0dcea;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  background: #f8fafd;
+}
+.login-field input:focus { border-color: var(--accent); background: #fff; }
+.login-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, transform 0.1s;
+}
+.login-btn:hover { background: var(--blue); }
+.login-btn:active { transform: scale(0.98); }
+.login-error {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--red);
+  min-height: 18px;
+  font-weight: 500;
+}
+.login-shake { animation: shake 0.35s ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+/* LOGOUT BUTTON in header */
+.logout-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #8daed4;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.logout-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
 /* HEADER */
 header {
   background: var(--navy);
@@ -426,12 +543,32 @@ tr:nth-child(even) td { background: #f7f9fd; }
 </head>
 <body>
 
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box" id="login-box">
+    <div class="login-logo">BRIXSANA</div>
+    <div class="login-sub">Ärzteübersicht &amp; Buchungshilfe</div>
+    <div class="login-divider"></div>
+    <div class="login-field">
+      <label>Benutzername</label>
+      <input type="text" id="login-user" placeholder="benutzername" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label>Passwort</label>
+      <input type="password" id="login-pass" placeholder="••••••••••••••" autocomplete="current-password" />
+    </div>
+    <button class="login-btn" id="login-btn">Anmelden</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
 <header>
   <div class="header-inner">
     <div class="logo">
       <span class="logo-name">BRIXSANA</span>
       <span class="logo-sub">Ärzteübersicht &amp; Buchungshilfe</span>
     </div>
+    <button class="logout-btn" id="logout-btn">⎋ Abmelden</button>
     <div class="search-wrap">
       <input type="text" id="searchInput" placeholder="Arzt, Fachgebiet oder Leistung suchen…" autocomplete="off">
       <span class="search-icon">⌕</span>
@@ -939,6 +1076,40 @@ document.getElementById('searchInput').addEventListener('input', e => {
   currentSearch = e.target.value;
   applyFilters();
 });
+
+// ========== LOGIN ==========
+const CREDENTIALS = { user: 'brixsana', pass: 'Brix#2025!Sana' };
+const SESSION_KEY = 'brixsana_auth';
+
+function checkSession() { return sessionStorage.getItem(SESSION_KEY) === 'ok'; }
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (u === CREDENTIALS.user && p === CREDENTIALS.pass) {
+    sessionStorage.setItem(SESSION_KEY, 'ok');
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('login-error').textContent = '';
+  } else {
+    const box = document.getElementById('login-box');
+    document.getElementById('login-error').textContent = 'Benutzername oder Passwort falsch.';
+    box.classList.remove('login-shake');
+    void box.offsetWidth;
+    box.classList.add('login-shake');
+    document.getElementById('login-pass').value = '';
+  }
+}
+function doLogout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+if (checkSession()) document.getElementById('login-overlay').classList.add('hidden');
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
+document.getElementById('logout-btn').addEventListener('click', doLogout);
 </script>
 </body>
 </html>
